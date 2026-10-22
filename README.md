@@ -29,15 +29,6 @@ mvn spring-boot:run
 
 Backend запустится на `http://localhost:8080`.
 
-### Проверка health checks
-
-В другом терминале выполните:
-
-```bash
-curl -i http://localhost:8080/actuator/health
-curl -i http://localhost:8080/api/health
-```
-
 Оба запроса должны вернуть HTTP `200 OK`. Для Actuator ожидается JSON с `"status":"UP"`, а для `/api/health` — JSON с `"status":"UP"`.
 
 В Windows PowerShell вместо `curl` можно открыть эти адреса в браузере либо выполнить:
