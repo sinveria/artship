@@ -55,11 +55,3 @@ Vite выведет локальный адрес, обычно `http://localhos
 git clone https://github.com/YOUR_USERNAME/artship.git
 cd artship
 ```
-
-После клонирования запускайте backend и frontend по инструкциям выше.
-
-## Важно
-
-- Backend и frontend запускаются в отдельных терминалах.
-- Для базового health check база данных не требуется.
-- Не коммитьте секреты, пароли и реальные `.env`-файлы.
