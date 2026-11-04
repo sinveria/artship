@@ -1,20 +1,20 @@
 package com.example.artship.features.user.service;
 
-import com.example.artship.entities.user.model.User;
-import com.example.artship.entities.user.model.UserRole;
-import com.example.artship.entities.user.repository.UserRepository;
-import com.example.artship.features.user.dto.RoleStatistics;
+import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import com.example.artship.entities.user.model.User;
+import com.example.artship.entities.user.model.UserRole;
+import com.example.artship.entities.user.repository.UserRepository;
+import com.example.artship.features.follow.service.FollowService;
+import com.example.artship.features.user.dto.RoleStatistics;
 
 @Service
 public class UserService {
@@ -23,9 +23,14 @@ public class UserService {
             LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
+    private final FollowService followService;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(
+            UserRepository userRepository,
+            FollowService followService
+    ) {
         this.userRepository = userRepository;
+        this.followService = followService;
     }
 
     @Transactional(readOnly = true)
@@ -48,9 +53,19 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /**
+     * Удаление пользователя вместе со всеми его подписками
+     * и подписчиками.
+     */
     @Transactional
     public void deleteById(Long id) {
+        followService.deleteAllUserFollows(id);
         userRepository.deleteById(id);
+
+        logger.info(
+                "User and all follow relationships deleted: userId={}",
+                id
+        );
     }
 
     @Transactional(readOnly = true)
