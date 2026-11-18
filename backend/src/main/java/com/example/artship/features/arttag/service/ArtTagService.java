@@ -138,8 +138,11 @@ public class ArtTagService {
 
     @Transactional(readOnly = true)
     public Long getArtCountByTagId(Long tagId) {
-        getTagById(tagId);
-        return tagRepository.countByArtsId(tagId);
+        Tag tag = getTagById(tagId);
+
+        return tag.getArts() == null
+                ? 0L
+                : (long) tag.getArts().size();
     }
 
     @Transactional(readOnly = true)
