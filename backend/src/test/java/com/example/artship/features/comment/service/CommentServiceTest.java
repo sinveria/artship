@@ -28,6 +28,7 @@ import com.example.artship.entities.user.model.User;
 import com.example.artship.entities.user.repository.UserRepository;
 import com.example.artship.features.comment.dto.CommentDto;
 import com.example.artship.features.comment.mapper.CommentMapper;
+import com.example.artship.features.commentlike.service.CommentLikeService;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
@@ -41,6 +42,9 @@ class CommentServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private CommentLikeService commentLikeService;
+
     private CommentService commentService;
 
     private Art art;
@@ -52,7 +56,8 @@ class CommentServiceTest {
                 commentRepository,
                 artRepository,
                 userRepository,
-                new CommentMapper()
+                new CommentMapper(),
+                commentLikeService
         );
 
         art = Mockito.mock(Art.class);
@@ -69,6 +74,7 @@ class CommentServiceTest {
     void createCommentShouldSaveAndReturnComment() {
         when(art.getId()).thenReturn(1L);
         when(user.getId()).thenReturn(1L);
+
         when(artRepository.findById(1L))
                 .thenReturn(Optional.of(art));
         when(userRepository.findById(1L))
@@ -92,6 +98,9 @@ class CommentServiceTest {
 
     @Test
     void createCommentShouldTrimText() {
+        when(art.getId()).thenReturn(1L);
+        when(user.getId()).thenReturn(1L);
+
         when(artRepository.findById(1L))
                 .thenReturn(Optional.of(art));
         when(userRepository.findById(1L))
@@ -105,7 +114,10 @@ class CommentServiceTest {
                 1L
         );
 
+        assertNotNull(result);
         assertEquals("Nice work!", result.getText());
+        assertEquals(1L, result.getArtId());
+        assertEquals(1L, result.getUserId());
     }
 
     @Test
@@ -156,8 +168,10 @@ class CommentServiceTest {
 
     @Test
     void createReplyShouldSaveReply() {
-        Comment parent = createComment(10L, "Parent comment");
         when(art.getId()).thenReturn(1L);
+        when(user.getId()).thenReturn(1L);
+
+        Comment parent = createComment(10L, "Parent comment");
 
         when(commentRepository.findById(10L))
                 .thenReturn(Optional.of(parent));
@@ -324,6 +338,7 @@ class CommentServiceTest {
     @Test
     void updateCommentShouldUpdateTextWhenUserIsAuthor() {
         when(user.getId()).thenReturn(1L);
+
         Comment comment = createComment(1L, "Old text");
 
         when(commentRepository.findById(1L))
@@ -344,6 +359,7 @@ class CommentServiceTest {
     @Test
     void updateCommentShouldThrowWhenUserIsNotAuthor() {
         when(user.getId()).thenReturn(1L);
+
         Comment comment = createComment(1L, "Original text");
 
         when(commentRepository.findById(1L))
@@ -365,6 +381,7 @@ class CommentServiceTest {
     @Test
     void updateCommentShouldThrowWhenCommentIsHidden() {
         when(user.getId()).thenReturn(1L);
+
         Comment comment = createComment(1L, "Hidden");
         comment.setHidden(true);
 
@@ -401,6 +418,7 @@ class CommentServiceTest {
     @Test
     void deleteCommentShouldDeleteCommentAndReplies() {
         when(user.getId()).thenReturn(1L);
+
         Comment parent = createComment(1L, "Parent");
         Comment reply = createComment(2L, "Reply");
         reply.setParentComment(parent);
@@ -414,6 +432,8 @@ class CommentServiceTest {
 
         commentService.deleteComment(1L, 1L);
 
+        verify(commentLikeService).deleteAllLikesByCommentId(2L);
+        verify(commentLikeService).deleteAllLikesByCommentId(1L);
         verify(commentRepository).delete(reply);
         verify(commentRepository).delete(parent);
     }
@@ -421,6 +441,7 @@ class CommentServiceTest {
     @Test
     void deleteCommentShouldThrowWhenUserIsNotAuthor() {
         when(user.getId()).thenReturn(1L);
+
         Comment comment = createComment(1L, "Comment");
 
         when(commentRepository.findById(1L))

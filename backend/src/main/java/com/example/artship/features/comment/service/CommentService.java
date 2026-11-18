@@ -13,6 +13,7 @@ import com.example.artship.entities.user.model.User;
 import com.example.artship.entities.user.repository.UserRepository;
 import com.example.artship.features.comment.dto.CommentDto;
 import com.example.artship.features.comment.mapper.CommentMapper;
+import com.example.artship.features.commentlike.service.CommentLikeService;
 
 @Service
 @Transactional
@@ -22,29 +23,32 @@ public class CommentService {
     private final ArtRepository artRepository;
     private final UserRepository userRepository;
     private final CommentMapper commentMapper;
+    private final CommentLikeService commentLikeService;
 
     public CommentService(
             CommentRepository commentRepository,
             ArtRepository artRepository,
             UserRepository userRepository,
-            CommentMapper commentMapper
+            CommentMapper commentMapper,
+            CommentLikeService commentLikeService
     ) {
         this.commentRepository = commentRepository;
         this.artRepository = artRepository;
         this.userRepository = userRepository;
         this.commentMapper = commentMapper;
+        this.commentLikeService = commentLikeService;
     }
 
     public CommentDto createComment(String text, Long artId, Long userId) {
         validateText(text);
 
         Art art = artRepository.findById(artId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Арт не найден"));
+                .orElseThrow(()
+                        -> new IllegalArgumentException("Арт не найден"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Пользователь не найден"));
+                .orElseThrow(()
+                        -> new IllegalArgumentException("Пользователь не найден"));
 
         Comment comment = new Comment(text.trim(), art, user);
 
@@ -59,12 +63,12 @@ public class CommentService {
         validateText(text);
 
         Comment parentComment = commentRepository.findById(parentCommentId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Родительский комментарий не найден"));
+                .orElseThrow(()
+                        -> new IllegalArgumentException("Родительский комментарий не найден"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Пользователь не найден"));
+                .orElseThrow(()
+                        -> new IllegalArgumentException("Пользователь не найден"));
 
         if (parentComment.isHidden()) {
             throw new IllegalArgumentException(
@@ -185,12 +189,15 @@ public class CommentService {
     }
 
     private void deleteCommentTree(Comment comment) {
-        List<Comment> replies =
-                commentRepository.findByParentCommentId(comment.getId());
+        List<Comment> replies
+                = commentRepository.findByParentCommentId(comment.getId());
 
         for (Comment reply : replies) {
             deleteCommentTree(reply);
         }
+
+        // Удаляем лайки комментария до удаления самого комментария.
+        commentLikeService.deleteAllLikesByCommentId(comment.getId());
 
         commentRepository.delete(comment);
     }
@@ -206,8 +213,8 @@ public class CommentService {
 
     private Comment findComment(Long id) {
         return commentRepository.findById(id)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Комментарий не найден"));
+                .orElseThrow(()
+                        -> new IllegalArgumentException("Комментарий не найден"));
     }
 
     private void validateText(String text) {

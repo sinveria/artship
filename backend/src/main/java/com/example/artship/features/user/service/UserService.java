@@ -13,24 +13,28 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.artship.entities.user.model.User;
 import com.example.artship.entities.user.model.UserRole;
 import com.example.artship.entities.user.repository.UserRepository;
+import com.example.artship.features.commentlike.service.CommentLikeService;
 import com.example.artship.features.follow.service.FollowService;
 import com.example.artship.features.user.dto.RoleStatistics;
 
 @Service
 public class UserService {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(UserService.class);
+    private static final Logger logger
+            = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
     private final FollowService followService;
+    private final CommentLikeService commentLikeService;
 
     public UserService(
             UserRepository userRepository,
-            FollowService followService
+            FollowService followService,
+            CommentLikeService commentLikeService
     ) {
         this.userRepository = userRepository;
         this.followService = followService;
+        this.commentLikeService = commentLikeService;
     }
 
     @Transactional(readOnly = true)
@@ -54,16 +58,18 @@ public class UserService {
     }
 
     /**
-     * Удаление пользователя вместе со всеми его подписками
-     * и подписчиками.
+     * Удаление пользователя вместе со всеми его подписками и лайками
+     * комментариев.
      */
     @Transactional
     public void deleteById(Long id) {
+        commentLikeService.deleteAllLikesByUserId(id);
         followService.deleteAllUserFollows(id);
+
         userRepository.deleteById(id);
 
         logger.info(
-                "User and all follow relationships deleted: userId={}",
+                "User, comment likes and follow relationships deleted: userId={}",
                 id
         );
     }
@@ -89,8 +95,8 @@ public class UserService {
     @Transactional
     public User changeUserRole(Long userId, UserRole newRole) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
+                .orElseThrow(()
+                        -> new IllegalArgumentException(
                                 "User not found with id: " + userId
                         )
                 );
@@ -106,8 +112,8 @@ public class UserService {
             UserRole newRole
     ) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
+                .orElseThrow(()
+                        -> new IllegalArgumentException(
                                 "User not found with username: " + username
                         )
                 );
@@ -147,8 +153,8 @@ public class UserService {
 
         long totalUsers = userRepository.count();
         long adminCount = userRepository.countByUserRole(UserRole.ADMIN);
-        long moderatorCount =
-                userRepository.countByUserRole(UserRole.MODERATOR);
+        long moderatorCount
+                = userRepository.countByUserRole(UserRole.MODERATOR);
         long userCount = userRepository.countByUserRole(UserRole.USER);
 
         return new RoleStatistics(
